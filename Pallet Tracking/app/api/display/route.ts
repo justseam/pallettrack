@@ -1,79 +1,93 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+
+const OPENWEATHERMAP_URL = "https://api.openweathermap.org/data/2.5/weather"
+
+// Demo weather data used when no API key is provided
+function getDemoWeather(location: string) {
+  // Deterministic demo data based on location string
+  const seed = location.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
+  const temps = [28, 34, 42, 55, 63, 72, 78, 85, 68, 51, 39, 31]
+  const conditions = [
+    "Clear Sky",
+    "Few Clouds",
+    "Partly Cloudy",
+    "Overcast",
+    "Light Rain",
+    "Sunny",
+  ]
+  const winds = ["5 mph N", "8 mph NE", "12 mph NW", "3 mph S", "15 mph W", "7 mph SE"]
+
+  const temp = temps[seed % temps.length]
+  return {
+    temp,
+    feelsLike: temp - 4,
+    humidity: 40 + (seed % 45),
+    condition: conditions[seed % conditions.length],
+    wind: winds[seed % winds.length],
+    location,
+    source: "demo",
+  }
+}
+
+async function fetchWeather(location: string, apiKey: string) {
+  try {
+    const url = `${OPENWEATHERMAP_URL}?q=${encodeURIComponent(location)}&appid=${apiKey}&units=imperial`
+    const res = await fetch(url, { next: { revalidate: 300 } }) // cache 5min
+    if (!res.ok) return getDemoWeather(location)
+
+    const data = await res.json()
+    return {
+      temp: Math.round(data.main.temp),
+      feelsLike: Math.round(data.main.feels_like),
+      humidity: data.main.humidity,
+      condition: data.weather?.[0]?.main || "Unknown",
+      wind: `${Math.round(data.wind.speed)} mph`,
+      location: data.name || location,
+      source: "openweathermap",
+    }
+  } catch {
+    return getDemoWeather(location)
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const { searchParams } = new URL(request.url)
+    const location = searchParams.get("location") || "New York"
+    const apiKey = searchParams.get("apiKey") || process.env.OPENWEATHERMAP_API_KEY || ""
 
-    // Get today's date boundaries
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date()
-    todayEnd.setHours(23, 59, 59, 999)
+    const now = new Date()
 
-    // Fetch summary stats
-    const { data: allDeliveries, error: deliveriesError } = await supabase
-      .from("deliveries")
-      .select("id, pallet_count, created_at, status")
-      .order("created_at", { ascending: false })
-
-    if (deliveriesError) {
-      console.error("Error fetching deliveries:", deliveriesError)
-      return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 })
+    // Clock data
+    const clock = {
+      time: now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      date: now.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }),
+      day: now.toLocaleDateString("en-US", { weekday: "long" }),
+      timestamp: now.toISOString(),
     }
 
-    const deliveries = allDeliveries || []
+    // Weather data
+    const weather = apiKey
+      ? await fetchWeather(location, apiKey)
+      : getDemoWeather(location)
 
-    const todayDeliveries = deliveries.filter((d) => {
-      const created = new Date(d.created_at)
-      return created >= todayStart && created <= todayEnd
-    })
-
-    const totalPallets = deliveries.reduce((sum, d) => sum + d.pallet_count, 0)
-    const todayPallets = todayDeliveries.reduce((sum, d) => sum + d.pallet_count, 0)
-
-    // Fetch latest 5 deliveries with details for the display
-    const { data: recentDeliveries, error: recentError } = await supabase
-      .from("deliveries")
-      .select("driver_name, company_name, pallet_count, status, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5)
-
-    if (recentError) {
-      console.error("Error fetching recent deliveries:", recentError)
-    }
-
-    // Format for ESP32 display consumption (300x400 B&W RLCD)
     const displayData = {
-      // Metadata
-      timestamp: new Date().toISOString(),
+      timestamp: now.toISOString(),
       display: {
         width: 300,
         height: 400,
         type: "rlcd_bw",
       },
-
-      // Summary stats
-      stats: {
-        totalDeliveries: deliveries.length,
-        totalPallets,
-        todayDeliveries: todayDeliveries.length,
-        todayPallets,
-        confirmedCount: deliveries.filter((d) => d.status === "confirmed").length,
-      },
-
-      // Recent deliveries (trimmed for display)
-      recent: (recentDeliveries || []).map((d) => ({
-        driver: d.driver_name.length > 18 ? d.driver_name.substring(0, 16) + ".." : d.driver_name,
-        company: d.company_name.length > 18 ? d.company_name.substring(0, 16) + ".." : d.company_name,
-        pallets: d.pallet_count,
-        status: d.status,
-        time: new Date(d.created_at).toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        }),
-      })),
+      clock,
+      weather,
     }
 
     return NextResponse.json(displayData, {

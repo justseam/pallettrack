@@ -2,34 +2,35 @@
 
 import { useState, useEffect } from "react"
 
-interface DisplayStats {
-  totalDeliveries: number
-  totalPallets: number
-  todayDeliveries: number
-  todayPallets: number
-  confirmedCount: number
+interface ClockData {
+  time: string
+  date: string
+  day: string
+  timestamp: string
 }
 
-interface RecentDelivery {
-  driver: string
-  company: string
-  pallets: number
-  status: string
-  time: string
+interface WeatherData {
+  temp: number
+  feelsLike: number
+  humidity: number
+  condition: string
+  wind: string
+  location: string
+  source: string
 }
 
 interface DisplayData {
   timestamp: string
   display: { width: number; height: number; type: string }
-  stats: DisplayStats
-  recent: RecentDelivery[]
+  clock: ClockData
+  weather: WeatherData
 }
 
-type DisplayView = "dashboard" | "deliveries" | "status"
+type DisplayView = "widgets" | "weather" | "status"
 
 export function DisplayPreview({
   data,
-  view = "dashboard",
+  view = "widgets",
   scale = 1.5,
 }: {
   data: DisplayData | null
@@ -46,222 +47,186 @@ export function DisplayPreview({
   const W = 300
   const H = 400
 
-  const timeStr = currentTime.toLocaleTimeString("en-US", {
+  const liveTime = currentTime.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   })
-  const dateStr = currentTime.toLocaleDateString("en-US", {
+  const liveDate = currentTime.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
   })
+  const liveDay = currentTime.toLocaleDateString("en-US", { weekday: "long" })
 
-  const renderDashboard = () => {
-    if (!data) {
-      return (
-        <g>
-          <text x={W / 2} y={H / 2 - 10} textAnchor="middle" fontSize="14" fontFamily="monospace" fill="black">
-            Connecting...
-          </text>
-          <text x={W / 2} y={H / 2 + 14} textAnchor="middle" fontSize="11" fontFamily="monospace" fill="black">
-            Waiting for data
-          </text>
-        </g>
-      )
-    }
+  const clockTime = data?.clock?.time || liveTime
+  const clockDate = data?.clock?.date || liveDate
+  const clockDay = data?.clock?.day || liveDay
 
+  const weather = data?.weather || {
+    temp: 45,
+    feelsLike: 38,
+    humidity: 62,
+    condition: "Partly Cloudy",
+    wind: "12 mph NW",
+    location: "New York",
+    source: "demo",
+  }
+
+  const renderWidgets = () => {
     return (
       <g>
         {/* Header bar */}
         <rect x="0" y="0" width={W} height="42" fill="black" />
         <text x="10" y="17" fontSize="10" fontFamily="monospace" fill="white" fontWeight="bold">
-          PALLET TRACKER
+          DISPLAY HUB
         </text>
         <text x={W - 10} y="17" textAnchor="end" fontSize="10" fontFamily="monospace" fill="white">
-          {timeStr}
+          {liveTime}
         </text>
         <text x="10" y="33" fontSize="9" fontFamily="monospace" fill="white">
-          {dateStr}
+          {liveDate}
         </text>
         <text x={W - 10} y="33" textAnchor="end" fontSize="9" fontFamily="monospace" fill="white">
           WiFi Connected
         </text>
 
-        {/* Stats grid - 2x2 */}
-        <rect x="8" y="50" width="136" height="62" rx="4" stroke="black" strokeWidth="1.5" fill="white" />
-        <text x="76" y="70" textAnchor="middle" fontSize="9" fontFamily="monospace" fill="black">
-          TODAY
+        {/* Large clock */}
+        <text x={W / 2} y="90" textAnchor="middle" fontSize="42" fontFamily="monospace" fill="black" fontWeight="bold">
+          {liveTime}
         </text>
-        <text x="76" y="95" textAnchor="middle" fontSize="24" fontFamily="monospace" fill="black" fontWeight="bold">
-          {data.stats.todayDeliveries}
-        </text>
-        <text x="76" y="108" textAnchor="middle" fontSize="8" fontFamily="monospace" fill="black">
-          deliveries
-        </text>
-
-        <rect x="156" y="50" width="136" height="62" rx="4" stroke="black" strokeWidth="1.5" fill="white" />
-        <text x="224" y="70" textAnchor="middle" fontSize="9" fontFamily="monospace" fill="black">
-          TODAY PALLETS
-        </text>
-        <text x="224" y="95" textAnchor="middle" fontSize="24" fontFamily="monospace" fill="black" fontWeight="bold">
-          {data.stats.todayPallets}
-        </text>
-        <text x="224" y="108" textAnchor="middle" fontSize="8" fontFamily="monospace" fill="black">
-          pallets
-        </text>
-
-        <rect x="8" y="120" width="136" height="62" rx="4" stroke="black" strokeWidth="1.5" fill="white" />
-        <text x="76" y="140" textAnchor="middle" fontSize="9" fontFamily="monospace" fill="black">
-          ALL TIME
-        </text>
-        <text x="76" y="165" textAnchor="middle" fontSize="24" fontFamily="monospace" fill="black" fontWeight="bold">
-          {data.stats.totalDeliveries}
-        </text>
-        <text x="76" y="178" textAnchor="middle" fontSize="8" fontFamily="monospace" fill="black">
-          deliveries
-        </text>
-
-        <rect x="156" y="120" width="136" height="62" rx="4" stroke="black" strokeWidth="1.5" fill="white" />
-        <text x="224" y="140" textAnchor="middle" fontSize="9" fontFamily="monospace" fill="black">
-          TOTAL PALLETS
-        </text>
-        <text x="224" y="165" textAnchor="middle" fontSize="24" fontFamily="monospace" fill="black" fontWeight="bold">
-          {data.stats.totalPallets}
-        </text>
-        <text x="224" y="178" textAnchor="middle" fontSize="8" fontFamily="monospace" fill="black">
-          pallets
+        <text x={W / 2} y="115" textAnchor="middle" fontSize="14" fontFamily="monospace" fill="black">
+          {clockDay} — {clockDate}
         </text>
 
         {/* Divider */}
-        <line x1="8" y1="194" x2={W - 8} y2="194" stroke="black" strokeWidth="1" />
+        <line x1="8" y1="135" x2={W - 8} y2="135" stroke="black" strokeWidth="1" />
 
-        {/* Recent deliveries header */}
-        <text x="10" y="212" fontSize="10" fontFamily="monospace" fill="black" fontWeight="bold">
-          RECENT DELIVERIES
+        {/* Weather section */}
+        <text x="10" y="157" fontSize="10" fontFamily="monospace" fill="black" fontWeight="bold">
+          WEATHER
         </text>
-
-        {/* Table header */}
-        <rect x="8" y="220" width={W - 16} height="16" fill="black" />
-        <text x="12" y="232" fontSize="8" fontFamily="monospace" fill="white">
-          DRIVER
-        </text>
-        <text x="130" y="232" fontSize="8" fontFamily="monospace" fill="white">
-          CO.
-        </text>
-        <text x="220" y="232" fontSize="8" fontFamily="monospace" fill="white" textAnchor="middle">
-          PLT
-        </text>
-        <text x={W - 12} y="232" textAnchor="end" fontSize="8" fontFamily="monospace" fill="white">
-          TIME
+        <text x={W - 10} y="157" textAnchor="end" fontSize="8" fontFamily="monospace" fill="#666">
+          {weather.source === "demo" ? "DEMO DATA" : "LIVE"}
         </text>
 
-        {/* Table rows */}
-        {data.recent.map((delivery, i) => {
-          const y = 240 + i * 28
-          return (
-            <g key={i}>
-              {i % 2 === 0 && <rect x="8" y={y} width={W - 16} height="28" fill="#f0f0f0" />}
-              <text x="12" y={y + 12} fontSize="8" fontFamily="monospace" fill="black">
-                {delivery.driver}
-              </text>
-              <text x="12" y={y + 23} fontSize="7" fontFamily="monospace" fill="#666">
-                {delivery.company}
-              </text>
-              <text x="220" y={y + 17} fontSize="12" fontFamily="monospace" fill="black" textAnchor="middle" fontWeight="bold">
-                {delivery.pallets}
-              </text>
-              <text x={W - 12} y={y + 17} textAnchor="end" fontSize="8" fontFamily="monospace" fill="black">
-                {delivery.time}
-              </text>
-            </g>
-          )
-        })}
+        {/* Big temperature */}
+        <text x="18" y="225" fontSize="52" fontFamily="monospace" fill="black" fontWeight="bold">
+          {weather.temp}°
+        </text>
+        <text x="155" y="195" fontSize="9" fontFamily="monospace" fill="black">
+          Feels like {weather.feelsLike}°F
+        </text>
+        <text x="155" y="210" fontSize="11" fontFamily="monospace" fill="black" fontWeight="bold">
+          {weather.condition}
+        </text>
+        <text x="155" y="226" fontSize="9" fontFamily="monospace" fill="#666">
+          {weather.location}
+        </text>
 
-        {data.recent.length === 0 && (
-          <text x={W / 2} y="280" textAnchor="middle" fontSize="10" fontFamily="monospace" fill="#999">
-            No deliveries yet
-          </text>
-        )}
+        {/* Weather details row */}
+        <rect x="8" y="245" width={W - 16} height="32" rx="4" stroke="black" strokeWidth="1" fill="white" />
+        <text x="20" y="265" fontSize="9" fontFamily="monospace" fill="black">
+          Humidity: {weather.humidity}%
+        </text>
+        <line x1={W / 2} y1="249" x2={W / 2} y2="273" stroke="black" strokeWidth="0.5" />
+        <text x={W / 2 + 12} y="265" fontSize="9" fontFamily="monospace" fill="black">
+          Wind: {weather.wind}
+        </text>
+
+        {/* Divider */}
+        <line x1="8" y1="292" x2={W - 8} y2="292" stroke="black" strokeWidth="1" />
+
+        {/* Onboard sensors section */}
+        <text x="10" y="312" fontSize="10" fontFamily="monospace" fill="black" fontWeight="bold">
+          DEVICE SENSORS
+        </text>
+
+        <rect x="8" y="320" width="136" height="48" rx="4" stroke="black" strokeWidth="1" fill="white" />
+        <text x="76" y="340" textAnchor="middle" fontSize="8" fontFamily="monospace" fill="#666">
+          INDOOR TEMP
+        </text>
+        <text x="76" y="360" textAnchor="middle" fontSize="16" fontFamily="monospace" fill="black" fontWeight="bold">
+          72.4°F
+        </text>
+
+        <rect x="156" y="320" width="136" height="48" rx="4" stroke="black" strokeWidth="1" fill="white" />
+        <text x="224" y="340" textAnchor="middle" fontSize="8" fontFamily="monospace" fill="#666">
+          HUMIDITY
+        </text>
+        <text x="224" y="360" textAnchor="middle" fontSize="16" fontFamily="monospace" fill="black" fontWeight="bold">
+          45% RH
+        </text>
 
         {/* Footer */}
-        <line x1="8" y1={H - 24} x2={W - 8} y2={H - 24} stroke="black" strokeWidth="0.5" />
-        <text x={W / 2} y={H - 10} textAnchor="middle" fontSize="8" fontFamily="monospace" fill="#666">
-          Waveshare ESP32-S3 RLCD 4.2" | Auto-refresh 30s
+        <line x1="8" y1={H - 20} x2={W - 8} y2={H - 20} stroke="black" strokeWidth="0.5" />
+        <text x={W / 2} y={H - 7} textAnchor="middle" fontSize="7" fontFamily="monospace" fill="#888">
+          ESP32-S3 RLCD 4.2" | SHTC3 | PCF85063 RTC | Auto-refresh 30s
         </text>
       </g>
     )
   }
 
-  const renderDeliveries = () => {
-    if (!data) return renderDashboard()
-
+  const renderWeather = () => {
     return (
       <g>
         {/* Header */}
         <rect x="0" y="0" width={W} height="42" fill="black" />
         <text x="10" y="17" fontSize="10" fontFamily="monospace" fill="white" fontWeight="bold">
-          DELIVERY LIST
+          WEATHER
         </text>
         <text x={W - 10} y="17" textAnchor="end" fontSize="10" fontFamily="monospace" fill="white">
-          {timeStr}
+          {liveTime}
         </text>
         <text x="10" y="33" fontSize="9" fontFamily="monospace" fill="white">
-          {data.stats.todayDeliveries} today | {data.stats.totalDeliveries} total
+          {weather.location}
+        </text>
+        <text x={W - 10} y="33" textAnchor="end" fontSize="8" fontFamily="monospace" fill="white">
+          {weather.source === "demo" ? "DEMO" : "LIVE"}
         </text>
 
-        {/* Table header */}
-        <rect x="4" y="50" width={W - 8} height="18" fill="black" />
-        <text x="8" y="63" fontSize="9" fontFamily="monospace" fill="white">
-          DRIVER
+        {/* Giant temperature */}
+        <text x={W / 2} y="130" textAnchor="middle" fontSize="72" fontFamily="monospace" fill="black" fontWeight="bold">
+          {weather.temp}°
         </text>
-        <text x="160" y="63" fontSize="9" fontFamily="monospace" fill="white">
-          PALLETS
-        </text>
-        <text x={W - 8} y="63" textAnchor="end" fontSize="9" fontFamily="monospace" fill="white">
-          STATUS
+        <text x={W / 2} y="155" textAnchor="middle" fontSize="11" fontFamily="monospace" fill="#666">
+          Feels like {weather.feelsLike}°F
         </text>
 
-        {/* Delivery rows */}
-        {data.recent.map((delivery, i) => {
-          const y = 72 + i * 60
-          return (
-            <g key={i}>
-              <rect x="4" y={y} width={W - 8} height="56" rx="3" stroke="black" strokeWidth="1" fill={i % 2 === 0 ? "#f5f5f5" : "white"} />
-              <text x="10" y={y + 16} fontSize="10" fontFamily="monospace" fill="black" fontWeight="bold">
-                {delivery.driver}
-              </text>
-              <text x="10" y={y + 30} fontSize="8" fontFamily="monospace" fill="#666">
-                {delivery.company}
-              </text>
-              <text x="10" y={y + 44} fontSize="8" fontFamily="monospace" fill="#999">
-                {delivery.time}
-              </text>
-              <text x="180" y={y + 30} textAnchor="middle" fontSize="18" fontFamily="monospace" fill="black" fontWeight="bold">
-                {delivery.pallets}
-              </text>
-              {delivery.status === "confirmed" ? (
-                <g>
-                  <rect x={W - 70} y={y + 8} width="56" height="16" rx="8" fill="black" />
-                  <text x={W - 42} y={y + 20} textAnchor="middle" fontSize="7" fontFamily="monospace" fill="white">
-                    CONFIRMED
-                  </text>
-                </g>
-              ) : (
-                <g>
-                  <rect x={W - 66} y={y + 8} width="52" height="16" rx="8" stroke="black" strokeWidth="1" fill="white" />
-                  <text x={W - 40} y={y + 20} textAnchor="middle" fontSize="7" fontFamily="monospace" fill="black">
-                    PENDING
-                  </text>
-                </g>
-              )}
-            </g>
-          )
-        })}
+        {/* Condition */}
+        <rect x="60" y="170" width="180" height="30" rx="15" fill="black" />
+        <text x={W / 2} y="190" textAnchor="middle" fontSize="12" fontFamily="monospace" fill="white" fontWeight="bold">
+          {weather.condition}
+        </text>
+
+        {/* Details */}
+        <line x1="8" y1="220" x2={W - 8} y2="220" stroke="black" strokeWidth="1" />
+
+        <text x="10" y="248" fontSize="9" fontFamily="monospace" fill="#666">Humidity</text>
+        <text x={W - 10} y="248" textAnchor="end" fontSize="12" fontFamily="monospace" fill="black" fontWeight="bold">{weather.humidity}%</text>
+
+        <line x1="20" y1="258" x2={W - 20} y2="258" stroke="#ddd" strokeWidth="0.5" />
+
+        <text x="10" y="278" fontSize="9" fontFamily="monospace" fill="#666">Wind</text>
+        <text x={W - 10} y="278" textAnchor="end" fontSize="12" fontFamily="monospace" fill="black" fontWeight="bold">{weather.wind}</text>
+
+        <line x1="20" y1="288" x2={W - 20} y2="288" stroke="#ddd" strokeWidth="0.5" />
+
+        <text x="10" y="308" fontSize="9" fontFamily="monospace" fill="#666">Feels Like</text>
+        <text x={W - 10} y="308" textAnchor="end" fontSize="12" fontFamily="monospace" fill="black" fontWeight="bold">{weather.feelsLike}°F</text>
+
+        {/* Indoor sensors */}
+        <line x1="8" y1="330" x2={W - 8} y2="330" stroke="black" strokeWidth="1" />
+        <text x="10" y="350" fontSize="10" fontFamily="monospace" fill="black" fontWeight="bold">
+          INDOOR (SHTC3)
+        </text>
+
+        <text x="10" y="372" fontSize="9" fontFamily="monospace" fill="#666">Temperature</text>
+        <text x={W - 10} y="372" textAnchor="end" fontSize="11" fontFamily="monospace" fill="black">72.4°F</text>
 
         {/* Footer */}
-        <line x1="8" y1={H - 24} x2={W - 8} y2={H - 24} stroke="black" strokeWidth="0.5" />
-        <text x={W / 2} y={H - 10} textAnchor="middle" fontSize="8" fontFamily="monospace" fill="#666">
+        <line x1="8" y1={H - 20} x2={W - 8} y2={H - 20} stroke="black" strokeWidth="0.5" />
+        <text x={W / 2} y={H - 7} textAnchor="middle" fontSize="7" fontFamily="monospace" fill="#888">
           Waveshare ESP32-S3 RLCD 4.2"
         </text>
       </g>
@@ -277,13 +242,13 @@ export function DisplayPreview({
           DEVICE STATUS
         </text>
         <text x={W - 10} y="17" textAnchor="end" fontSize="10" fontFamily="monospace" fill="white">
-          {timeStr}
+          {liveTime}
         </text>
         <text x="10" y="33" fontSize="9" fontFamily="monospace" fill="white">
-          {dateStr}
+          {liveDate}
         </text>
 
-        {/* Device info */}
+        {/* Hardware */}
         <text x="10" y="66" fontSize="10" fontFamily="monospace" fill="black" fontWeight="bold">
           HARDWARE
         </text>
@@ -318,12 +283,12 @@ export function DisplayPreview({
 
         {/* Sensors */}
         <text x="10" y="264" fontSize="10" fontFamily="monospace" fill="black" fontWeight="bold">
-          SENSORS
+          SENSORS & AUDIO
         </text>
         <line x1="10" y1="270" x2={W - 10} y2="270" stroke="black" strokeWidth="0.5" />
 
         <text x="10" y="288" fontSize="9" fontFamily="monospace" fill="#666">Temperature</text>
-        <text x={W - 10} y="288" textAnchor="end" fontSize="9" fontFamily="monospace" fill="black">72.4 F (SHTC3)</text>
+        <text x={W - 10} y="288" textAnchor="end" fontSize="9" fontFamily="monospace" fill="black">72.4°F (SHTC3)</text>
 
         <text x="10" y="306" fontSize="9" fontFamily="monospace" fill="#666">Humidity</text>
         <text x={W - 10} y="306" textAnchor="end" fontSize="9" fontFamily="monospace" fill="black">45% RH</text>
@@ -331,12 +296,15 @@ export function DisplayPreview({
         <text x="10" y="324" fontSize="9" fontFamily="monospace" fill="#666">RTC</text>
         <text x={W - 10} y="324" textAnchor="end" fontSize="9" fontFamily="monospace" fill="black">PCF85063 Synced</text>
 
-        <text x="10" y="342" fontSize="9" fontFamily="monospace" fill="#666">Battery</text>
-        <text x={W - 10} y="342" textAnchor="end" fontSize="9" fontFamily="monospace" fill="black">18650 - Charging</text>
+        <text x="10" y="342" fontSize="9" fontFamily="monospace" fill="#666">Microphones</text>
+        <text x={W - 10} y="342" textAnchor="end" fontSize="9" fontFamily="monospace" fill="black">Dual Array (ES7210)</text>
+
+        <text x="10" y="360" fontSize="9" fontFamily="monospace" fill="#666">Speaker</text>
+        <text x={W - 10} y="360" textAnchor="end" fontSize="9" fontFamily="monospace" fill="black">ES8311 Codec</text>
 
         {/* Footer */}
-        <line x1="8" y1={H - 24} x2={W - 8} y2={H - 24} stroke="black" strokeWidth="0.5" />
-        <text x={W / 2} y={H - 10} textAnchor="middle" fontSize="8" fontFamily="monospace" fill="#666">
+        <line x1="8" y1={H - 20} x2={W - 8} y2={H - 20} stroke="black" strokeWidth="0.5" />
+        <text x={W / 2} y={H - 7} textAnchor="middle" fontSize="7" fontFamily="monospace" fill="#888">
           Waveshare ESP32-S3 RLCD 4.2"
         </text>
       </g>
@@ -345,18 +313,17 @@ export function DisplayPreview({
 
   const renderContent = () => {
     switch (view) {
-      case "deliveries":
-        return renderDeliveries()
+      case "weather":
+        return renderWeather()
       case "status":
         return renderStatus()
       default:
-        return renderDashboard()
+        return renderWidgets()
     }
   }
 
   return (
     <div className="inline-block" style={{ width: W * scale, height: H * scale }}>
-      {/* Display bezel */}
       <div
         className="rounded-lg border-4 border-gray-800 bg-gray-900 p-2 shadow-xl"
         style={{ width: W * scale + 24, height: H * scale + 24 }}
@@ -371,7 +338,6 @@ export function DisplayPreview({
             filter: "contrast(1.2)",
           }}
         >
-          {/* Subtle paper texture for RLCD look */}
           <defs>
             <pattern id="rlcd-texture" width="4" height="4" patternUnits="userSpaceOnUse">
               <rect width="4" height="4" fill="#e8e4d9" />
@@ -379,7 +345,6 @@ export function DisplayPreview({
             </pattern>
           </defs>
           <rect width={W} height={H} fill="url(#rlcd-texture)" />
-
           {renderContent()}
         </svg>
       </div>
