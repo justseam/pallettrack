@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Truck, Package, CheckCircle, Users } from "lucide-react"
+import { Truck, Package, CheckCircle, Users, Monitor } from "lucide-react"
 import Link from "next/link"
 
 export default function HomePage() {
@@ -19,7 +19,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {/* Driver Interface Card */}
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="text-center">
@@ -76,6 +76,36 @@ export default function HomePage() {
               </div>
               <Button asChild variant="outline" className="w-full bg-transparent" size="lg">
                 <Link href="/admin">Access Dashboard</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Display Interface Card */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <Monitor className="h-10 w-10 text-emerald-600" />
+              </div>
+              <CardTitle className="text-2xl">Display Manager</CardTitle>
+              <CardDescription>Configure your Waveshare ESP32-S3 RLCD display</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  Live display preview
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  API endpoint for ESP32
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  Arduino firmware sketch
+                </div>
+              </div>
+              <Button asChild variant="outline" className="w-full bg-transparent" size="lg">
+                <Link href="/display">Manage Display</Link>
               </Button>
             </CardContent>
           </Card>

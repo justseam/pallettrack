@@ -31,9 +31,11 @@ import {
   Phone,
   Building,
   Send,
+  Monitor,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 interface Delivery {
   id: string
@@ -248,10 +250,18 @@ export function AdminDashboard() {
                 <p className="text-sm text-gray-600 dark:text-gray-300">Pallet Tracking System</p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" asChild>
+                <Link href="/display">
+                  <Monitor className="h-4 w-4 mr-2" />
+                  Display
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>
